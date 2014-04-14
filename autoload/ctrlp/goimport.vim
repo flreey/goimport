@@ -66,9 +66,7 @@ function! ctrlp#goimport#init()
         endif
         return s:global_packages
     else
-        if len(s:local_packages) == 0
-            call ctrlp#goimport#local_packs()
-        endif
+        call ctrlp#goimport#local_packs()
         return s:local_packages
     endif
 endfunction
@@ -110,27 +108,28 @@ import vim
 import re
 packages = []
 found = False
-for line in vim.eval("getbufline('*.go', 0, '$')"):
-    if re.search("import\s+\(", line):
-        found = True
-        continue
+for filename in range(1, int(vim.eval("bufnr('$')"))+1):
+    for line in vim.eval("getbufline(%s, 0, '$')" % filename):
+        if re.search("import\s+\(", line):
+            found = True
+            continue
 
-    if found:
-        matches = re.match(".*\"(.+)\"", line)
+        if found:
+            matches = re.match(".*\"(.+)\"", line)
+            if matches:
+                packages.append(matches.group(1).strip())
+
+            if ")" in line:
+                found = False
+            continue
+
+        matches = re.match("var|const|type|func", line)
+        if matches:
+            break
+
+        matches = re.match("import\s+\"(.+)\"", line)
         if matches:
             packages.append(matches.group(1).strip())
-
-        if ")" in line:
-            found = False
-        continue
-
-    matches = re.match("var|const|type|func", line)
-    if matches:
-        break
-
-    matches = re.match("import\s+\"(.+)\"", line)
-    if matches:
-        packages.append(matches.group(1).strip())
 
 vim.command("let s:local_packages = " + str(list(packages)))
 EOF
